@@ -1,0 +1,7 @@
+export const VISUAL_CONTENT = "VISUAL_CONTENT"
+export const QUESTION_CONTENT = "QUESTION_CONTENT"
+
+export default [
+    VISUAL_CONTENT,
+    QUESTION_CONTENT
+];
