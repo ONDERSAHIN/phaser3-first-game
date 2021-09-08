@@ -3,7 +3,7 @@ import store from "@/store";
 import {serviceContext} from "@/http/api/services/serviceContext";
 import EventBus from "@/bus/event.bus";
 
-export default class GameLevelSuccessScene extends Scene{
+export default class GameLevelSuccessScene extends Scene {
 
     _level = {}
 
@@ -15,15 +15,11 @@ export default class GameLevelSuccessScene extends Scene{
         this._level = data.levelData;
     }
 
-    preload() {
-
-    }
+    preload() {}
 
     create() {
-
-        EventBus.$emit("show:success-dialog",this._level)
-
-        store.getters.getEventEmitter.on("next-level",()=>{
+        EventBus.$emit("show:success-dialog", this._level)
+        EventBus.$on("next-level", () => {
             let point = this._level.levelPoint;
             let payload = {
                 "gameSession": store.getters.getSessionId.id,
@@ -40,19 +36,17 @@ export default class GameLevelSuccessScene extends Scene{
                     // this.monthlyScore = data.monthlyScore;
                     // this.gameLevel = GameLevels.getGameLevelByLevelNumber(this.currentLevel);
                     // GameContext.currentGameLevel = this.gameLevel;
-                    store.dispatch("setSessionScore",data.sessionScore)
-                    store.dispatch("setMonthlyScore",data.monthlyScore)
+                    store.dispatch("setSessionScore", data.sessionScore)
+                    store.dispatch("setMonthlyScore", data.monthlyScore)
                     // this.scene.stop("SessionLoadScene");
                     this.scene.start("SessionLoadScene");
 
                 } else {
                 }
             });
-            // EventBus.$off("next-level")
-            // EventBus.$off("retry")
-        },this)
+        }, this)
 
-        store.getters.getEventEmitter.on("retry",() =>{
+        EventBus.$on("retry", () => {
             // this.scene.start("GameLevelResolveScene",store.getters.getSessionId)
             // this.scene.stop("PlayScene");
             this.onRestart()
@@ -63,7 +57,7 @@ export default class GameLevelSuccessScene extends Scene{
 
     }
 
-    onRestart(){
+    onRestart() {
         this.scene.start("SessionLoadScene");
     }
 

@@ -9,14 +9,11 @@ import movementDirections from '@/game/core/model/direction.types'
 import EventBus from "@/bus/event.bus";
 import {VARIANT_CANDY_CRUSH_IN_MOVEMENT} from "@/game/levels/gameLevelTypes";
 
-let handleMatchCount = 0;
-let count = 0;
-let container = null;
 export default class PlayScene extends Scene {
 
-    GAME_WIDTH = 576; // 9 * 64 // 576 Mobile With
-    GAME_HEIGHT = 1040; // best height // 960
-    tileWidth = 82.0;
+    GAME_WIDTH = 576; // 9 * 64 // 576 Mobile With 640
+    GAME_HEIGHT = 960; // best height // 960
+    tileWidth = 83.0;
     tileHeight = 72.0;
     marginYDelta = 200;
     levelConfig = null;
@@ -34,9 +31,6 @@ export default class PlayScene extends Scene {
 
     constructor() {
         super({key: 'PlayScene'})
-        // this.gameContainer = document.getElementById('game-container');
-        // this.eventEmitter = new Phaser.Events.EventEmitter();
-        // store.dispatch('setEventEmitter',new Phaser.Events.EventEmitter());
     }
 
     init(data) {
@@ -52,48 +46,69 @@ export default class PlayScene extends Scene {
         EventBus.$emit("show:tutorial", this._level)
     }
 
-
     create() {
         EventBus.$emit('ready');
-        this.sound.play('gameMusic', {loop: true, volume: 0.70});
-        const width = this.GAME_WIDTH
-        const height = this.GAME_HEIGHT
+        EventBus.$on("next-level",()=>{
+            let point = this._level.levelPoint;
+            let payload = {
+                "gameSession": store.getters.getSessionId.id,
+                "actualPlayedTime": 0,
+                "score": point,
+                "extraGainedPoint": 0,
+                "currentLevel": this._level.currentLevel,
+                "gameSessionCheckPointType": "GAME_NEXT_LEVEL"
+            }
+            serviceContext.gameService.putGameSession(payload).then(({status, data: {data, error}}) => {
+                if (status === 201) {
+                    // this.currentLevel = data.level;
+                    // this.sessionScore = data.sessionScore
+                    // this.monthlyScore = data.monthlyScore;
+                    // this.gameLevel = GameLevels.getGameLevelByLevelNumber(this.currentLevel);
+                    // GameContext.currentGameLevel = this.gameLevel;
+                    store.dispatch("setSessionScore",data.sessionScore)
+                    store.dispatch("setMonthlyScore",data.monthlyScore)
+                    // this.scene.stop("SessionLoadScene");
+                    this.scene.start("SessionLoadScene");
 
+                } else {
+                }
+            });
+        },this)
+
+        EventBus.$on("retry",() =>{
+            this.scene.start('SessionLoadScene')
+        })
+        // this.sound.play('gameMusic', {loop: true, volume: 0.70});
+        this.renderScene();
+        this.initializeSceneView();
+        this.registerGameObjectListeners();
+    }
+
+    update(time, delta) {
+    }
+
+    renderScene(){
         this.createScoreText(this._userSessionData.sessionScore);
         this.createLevelText(this._userSessionData.currentLevel);
         this.createLevelMovementText(this._level.movementCount);
-        this.createLogOutText();
         if (this._level.levelType === VARIANT_CANDY_CRUSH_IN_MOVEMENT) this.createVariantGameLevelTargets(this._level.getAims())
         this.createLevelDescriptionText(this._level.getLevelAimDescription());
         this.gameBoard = this._buildGameBoard()
         this._renderGameBoard(this.gameBoard);
+    }
 
-        // this.resizeGameContainer()
+    initializeSceneView(){
+        const width = this.scale.gameSize.width;
+        const height = this.scale.gameSize.height;
         this.parent = new Phaser.Structs.Size(width, height);
         this.sizer = new Phaser.Structs.Size(this.GAME_WIDTH, this.GAME_HEIGHT, Phaser.Structs.Size.FIT, this.parent);
-        this.resize(this.scale.gameSize)
-        this.updateCamera2();
-
-        //
-        // window.addEventListener('resize', (event) => {
-        //
-        //     this.game.scale.resize(window.innerWidth, window.innerHeight);
-        //
-        // }, false);
-
-
-        // window.addEventListener('resize', (event) => {
-        //   // console.log("zoom")
-        //   // this.gameInstance.scale.setMaxZoom();
-        //   // this.scale.resize(window.innerWidth, window.innerHeight);
-        //   //   this.resizeInternal(window.innerWidth, window.innerHeight)
-        //     this.game.scale.gameSize.width = window.innerWidth;
-        //     this.game.scale.gameSize.height = window.innerHeight;
-        //     this.resize(this.scale.gameSize)
-        // }, false);
-
+        this.parent.setSize(width, height);
+        this.sizer.setSize(width, height);
+        this.updateCamera();
         this.scale.on('resize', this.resize, this);
+    }
 
+    registerGameObjectListeners(){
         this.input.off('gameobjectdown');
         this.input.off('gameobjectup');
 
@@ -111,63 +126,40 @@ export default class PlayScene extends Scene {
             this.touchEndHandler(gameObject)
             // gameObject.emit('touchend', gameObject);
         }, this);
+
     }
 
-    update(time, delta) {
-    }
+    showExplodeAnimation(){
+        const config = {
+            key: 'explode',
+            frames: 'boom',
+            frameRate: 16,
+            // repeat: -1,
+            // repeatDelay: 2000
+        };
 
-    resizeGameContainer() {
-        let winW = window.innerWidth / window.devicePixelRatio;
-        let winH = window.innerHeight / window.devicePixelRatio;
-        let breakpoints = [{scrW: 0, gamW: 400},
-            {scrW: 600, gamW: 450},
-            {scrW: 900, gamW: 550},
-            {scrW: 1200, gamW: 750},
-            {scrW: 1500, gamW: 1000},
-            {scrW: 1800, gamW: 1300}];
-        let currentBreakpoint = null;
-        let newViewPortW = 0;
-        let newViewPortH = 0;
+        this.anims.create(config);
 
-        for (let i = 0; i < breakpoints.length; i++) {
-            currentBreakpoint = breakpoints[i];
+        for (let i = 0; i < 1; i++)
+        {
+            // let x = Phaser.Math.Between(0, this.GAME_WIDTH );
+            // let y = Phaser.Math.Between(0, this.GAME_HEIGHT);
+            let x = this.GAME_WIDTH / 2;
+            let y = this.GAME_HEIGHT / 2;
 
-            if (winW < currentBreakpoint.scrW) {
-                break;
-            }
-        }
+            let boom = this.add.sprite(x, y, 'boom', 23);
+            boom.scale = 5
+            boom.depth = 1000
 
-        newViewPortW = currentBreakpoint.gamW;
-        newViewPortH = currentBreakpoint.gamW * (winH / winW);
-
-        this.game.scale.resize(newViewPortW, newViewPortH);
-
-        console.log(this.game)
-        this.gameContainer.style.width = `${window.innerWidth}px`;
-        this.gameContainer.style.height = `${window.innerHeight}px`;
-        // this.game.canvas.style.width = `${window.innerWidth}px`;
-        // this.game.canvas.style.height = `${window.innerHeight}px`;
-
-        this.game.scale.gameSize.width = window.innerWidth;
-        this.game.scale.gameSize.height = window.innerHeight;
-
-        this.eventEmitter.emit('screenResized');
-    }
-
-    resize2() {
-        var canvas = this.canvas, width = window.innerWidth, height = window.innerHeight;
-        var wratio = width / height, ratio = canvas.width / canvas.height;
-
-        if (wratio < ratio) {
-            canvas.style.width = width + "px";
-            canvas.style.height = (width / ratio) + "px";
-        } else {
-            canvas.style.width = (height * ratio) + "px";
-            canvas.style.height = height + "px";
+            //  Each one can have a random start delay
+            boom.play({
+                key: 'explode',
+                // delay: Math.random() * 3000
+            });
         }
     }
 
-    checkOriention(orientation) {
+    checkOrientation(orientation) {
         if (orientation === Phaser.Scale.PORTRAIT) {
             this.text.setVisible(false);
         } else if (orientation === Phaser.Scale.LANDSCAPE) {
@@ -175,39 +167,17 @@ export default class PlayScene extends Scene {
         }
     }
 
-    resizeInternal(width, height) {
-        // console.log("RESİZE ",windowsSize)
-        // const width = windowsSize.x;
-        // const height = windowsSize.y;
+    resize (gameSize)
+    {
+        const width = gameSize.width;
+        const height = gameSize.height;
         this.parent.setSize(width, height);
         this.sizer.setSize(width, height);
-        // this.updateCamera();
+        this.updateCamera();
     }
 
-    resizeApp() {
-        // Width-height-ratio of game resolution
-        let game_ratio = (9 * 32) / (15 * 32);
-
-        // Make div full height of browser and keep the ratio of game resolution
-        let div = document.getElementById('game-container');
-        div.style.width = (window.innerHeight * game_ratio) + 'px';
-        div.style.height = window.innerHeight + 'px';
-
-        // Check if device DPI messes up the width-height-ratio
-        let canvas = document.getElementsByTagName('canvas')[0];
-
-        let dpi_w = (parseInt(div.style.width) / canvas.width);
-        let dpi_h = (parseInt(div.style.height) / canvas.height);
-
-        let height = window.innerHeight * (dpi_w / dpi_h);
-        let width = height * 0.6;
-
-        canvas.style.width = width + 'px';
-        canvas.style.height = height + 'px';
-    }
-
-
-    updateCamera2() {
+    updateCamera ()
+    {
         const camera = this.cameras.main;
         const x = Math.ceil((this.parent.width - this.sizer.width) * 0.5);
         const y = 0;
@@ -216,26 +186,7 @@ export default class PlayScene extends Scene {
         camera.setViewport(x, y, this.sizer.width, this.sizer.height);
         camera.setZoom(Math.max(scaleX, scaleY));
         camera.centerOn(this.GAME_WIDTH / 2, this.GAME_HEIGHT / 2);
-    }
-
-    updateCamera() {
-        const camera = this.cameras.main;
-        const x = Math.ceil((this.parent.width - this.sizer.width) * 0.5);
-        const y = 0;
-
-        const scaleX = this.sizer.width / window.innerWidth;
-        const scaleY = this.sizer.height / window.innerHeight;
-        camera.setViewport(x, y, this.sizer.width, this.sizer.height);
-        camera.setZoom(Math.max(scaleX, scaleY));
-        camera.centerOn(window.innerWidth / 2, window.innerHeight / 2);
-    }
-
-    resize(gameSize) {
-        const width = gameSize.width;
-        const height = gameSize.height;
-        this.parent.setSize(width, height);
-        this.sizer.setSize(width, height);
-        this.updateCamera2();
+        // this.backgroundScene.updateCamera();
     }
 
     createLevelMovementText(movementCount) {
@@ -403,8 +354,8 @@ export default class PlayScene extends Scene {
 
     // TODO : 
     _renderGameBoard(board) {
-        this.boardCellLayer = this.add.group({});
-        this.boardCellLayer.z = 1;
+        // this.boardCellLayer = this.add.group({});
+        // this.boardCellLayer.z = 1;
         this.tilesLayer = this.add.group();
         this.tilesLayer.z = 2;
 
@@ -518,6 +469,7 @@ export default class PlayScene extends Scene {
             }
         }
         // console.log("POSSIBLE SWAPS ", this._swaps)
+        // console.log("POSSIBLE SWAPS ", this._swaps.size)
     }
 
 
@@ -631,7 +583,9 @@ export default class PlayScene extends Scene {
             // this.scene.stop("PlayScene")
             // EventBus.$emit("show:success-dialog",this._level)
             // this.scene.start('SessionLoadScene')
-            this.scene.start('GameLevelSuccessScene', {levelData: this._level})
+            // this.scene.start('GameLevelSuccessScene', {levelData: this._level})
+            // this.scene.start('SessionLoadScene')
+            EventBus.$emit("show:success-dialog",this._level)
         } else {
             // this.scene.restart();
             //this.input.off('gameobjectdown')
@@ -754,21 +708,6 @@ export default class PlayScene extends Scene {
         return chains;
     }
 
-
-    // removeMatches() {
-    //     var horizontalChains = this.detectHorizontalMatches();
-    //     var verticalChains = this.detectVerticalMatches();
-    //
-    //     this.removeCookies(horizontalChains);
-    //     this.removeCookies(verticalChains);
-    //
-    //     this.calculateScores(horizontalChains);
-    //     this.calculateScores(verticalChains);
-    //
-    //     return horizontalChains.concat(verticalChains);
-    // }
-
-
     _drawNewTilesAtSpawn(newTilesList) {
         newTilesList.forEach((newTile) => {
             let point = this.pointForGridLocation(newTile.getGridLocation().column, -1 / 3);
@@ -780,7 +719,7 @@ export default class PlayScene extends Scene {
         // console.log(this.tilesLayer);
         let tileGameObject = this.tilesLayer.create(x, y, tile.type.getName());
         tileGameObject.depth = 500;
-        tileGameObject.setScale(1.3);
+        tileGameObject.setScale(1.4);
         tileGameObject.setData('tile', tile)
         tileGameObject.setInteractive();
 
@@ -822,18 +761,12 @@ export default class PlayScene extends Scene {
     }
 
     onCompleteHandler(tween, targets, swap) {
-        // console.log('onCompleteHandler');
-        // console.log(targets[0])
         targets[0].scene.sound.play('crush');
         targets[0].depth = 1
-
-        // targets[0].scene.animateSwapAsReverse(swap)
-
     }
 
 
     onPointerOver(pointer) {
-        console.log("pointer over")
     }
 
 
@@ -887,7 +820,7 @@ export default class PlayScene extends Scene {
             x: targetTile.x,
             y: targetTile.y,
             ease: 'linear',
-            duration: 50,
+            duration: 20, // reverse swap duration
         });
 
         let tween2 = this.tweens.add({
@@ -895,7 +828,7 @@ export default class PlayScene extends Scene {
             x: sourceTile.x,
             y: sourceTile.y,
             ease: 'linear',
-            duration: 50,
+            duration: 20, // reverse swap animation duration
         });
     }
 
@@ -1082,3 +1015,30 @@ export default class PlayScene extends Scene {
     }
 
 }
+
+// LISTENERS
+//
+// window.addEventListener('resize', (event) => {
+//
+//     this.game.scale.resize(window.innerWidth, window.innerHeight);
+//
+// }, false);
+
+// window.addEventListener('resize', (event) => {
+//   // console.log("zoom")
+//   // this.gameInstance.scale.setMaxZoom();
+//   // this.scale.resize(window.innerWidth, window.innerHeight);
+//   //   this.resizeInternal(window.innerWidth, window.innerHeight)
+//     this.game.scale.gameSize.width = window.innerWidth;
+//     this.game.scale.gameSize.height = window.innerHeight;
+//     this.resize(this.scale.gameSize)
+// }, false);
+
+// resizeInternal(width, height) {
+//     // console.log("RESİZE ",windowsSize)
+//     // const width = windowsSize.x;
+//     // const height = windowsSize.y;
+//     this.parent.setSize(width, height);
+//     this.sizer.setSize(width, height);
+//     // this.updateCamera();
+// }

@@ -11,7 +11,6 @@ export default {
   name: 'App',
   data: () => ({
     active:0,
-    drawer: null,
     weeklyLeaderboard: {},
     monthlyLeaderboard: {},
     logOutDialog: false,
@@ -40,21 +39,15 @@ export default {
           // rank: 1
           // referenceCode: null
           // score: 27
-
           this.monthlyLeaderboard = data.monthly;
           this.weeklyLeaderboard = data.weekly;
         }
-
-
       })
-
-      this.drawer = true;
     },
     logOut() {
 
     },
     onLogOut() {
-      this.logOutDialog = true;
     }
   },
   mounted() {

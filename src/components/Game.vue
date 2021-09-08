@@ -1,207 +1,119 @@
 <template>
   <div>
-    <div :id="containerId"/>
-    <level-failure-game-state-view @close="onLevelFailureClose" @done:quiz="onLevelFailureDoneWithQuiz"
-                                   v-if="levelFailurePage"></level-failure-game-state-view>
+    <div id="game-container" style="z-index: 2000"></div>
+    <!--    <level-failure-game-state-view @close="onLevelFailureClose" @done:quiz="onLevelFailureDoneWithQuiz"-->
+    <!--                                   v-if="levelFailurePage"></level-failure-game-state-view>-->
+    <vs-dialog blur prevent-close not-close v-model="levelRetryDialog">
+      <template #header>
+        <h4 class="not-margin">
+          Bölüm Tamamlanamadı
+        </h4>
+      </template>
+
+      <vs-row justify="center">
+        <lottie :options="failureAnimationOptions" :height="200" :width="200"
+                v-on:animCreated="handleAnimation"></lottie>
+      </vs-row>
+
+      <template #footer>
+        <div class="footer-dialog">
+          <vs-button block @click="onRestart">
+            Tekrar Oyna
+          </vs-button>
+
+        </div>
+      </template>
+    </vs-dialog>
+
+    <vs-dialog blur prevent-close not-close v-model="levelSuccessDialog">
+      <template #header>
+        <h4 class="not-margin">
+          Tebrikler
+        </h4>
+      </template>
+
+      <vs-row justify="center">
+        <lottie :options="successAnimationOptions" :height="200" :width="200"
+                v-on:animCreated="handleAnimation"></lottie>
+      </vs-row>
+
+      <vs-row justify="center" class="mb-10">
+        <div class="" style="font-weight: bold; font-size: 24px;">
+          Topladığın puan
+        </div>
+      </vs-row>
+
+      <vs-row justify="center">
+        <div class="display-3 font-weight-bold text-center" style="font-weight: bold; font-size: 36px;">
+          {{ level.levelPoint }}
+        </div>
+      </vs-row>
+
+      <template #footer>
+        <div class="footer-dialog">
+          <vs-button size="xl" flat block @click="onRestart">
+            Tekrar Oyna
+          </vs-button>
+          <vs-button size="xl" color="primary" block @click="onNextLevel" x-large text>
+            <!--            <v-icon x-large left>mdi-skip-next</v-icon>-->
+            Sonraki Bölüme Geç
+          </vs-button>
+        </div>
+      </template>
+    </vs-dialog>
 
 
-    <v-dialog v-model="levelRetryDialog" persistent max-width="600"
-              overlay-color="primary" overlay-opacity="0.7">
-      <v-card class="mx-auto">
-        <v-card-title class="mb-5">
-          <v-flex class="text-center">
-            <div>Bölüm Tamamlanamadı</div>
-          </v-flex>
-        </v-card-title>
-        <v-card-text>
-          <v-row justify="center">
-            <lottie :options="failureAnimationOptions" :height="200" :width="200"
-                    v-on:animCreated="handleAnimation"></lottie>
-          </v-row>
-        </v-card-text>
+    <vs-dialog overflow-hidden not-close prevent-close v-model="entryPageShow">
+      <template #header>
+        <h4 class="not-margin">
+        </h4>
+      </template>
 
-        <v-card-text>
-          <v-footer :fixed="$vuetify.breakpoint.smAndDown">
-            <v-flex>
-              <v-btn x-large block text @click="onRestart">
-                <v-icon x-large left>mdi-restart</v-icon>
-                Tekrar Oyna
-              </v-btn>
-            </v-flex>
+      <vs-row justify="center">
+        <img
+            alt="pmaktif-logo"
+            class="shrink mt-1"
+            :src="require('@/assets/pm-aktif-logo.svg')"
+            width="300"
+        />
 
-          </v-footer>
-
-        </v-card-text>
-      </v-card>
-    </v-dialog>
-
-    <v-dialog v-model="levelSuccessDialog" persistent max-width="800" :fullscreen="$vuetify.breakpoint.smAndDown"
-              overlay-color="primary" overlay-opacity="0.7">
-      <v-card class="mx-auto">
-        <v-card-title>
-          <v-flex class="text-center">
-            <div>Tebrikler</div>
-          </v-flex>
-        </v-card-title>
-        <v-card-text class="mb-5">
-
-          <lottie :options="successAnimationOptions" :height="200" :width="200"
-                  v-on:animCreated="handleAnimation"></lottie>
-
-        </v-card-text>
-        <v-card-text>
-          <v-row justify="center" class="mb-10">
-            <div class="headline font-weight-bold text-center">
-              Topladığın puan
+      </vs-row>
+      <vs-row justify="center">
+        <!--          <lottie :options="defaultOptions" :height="300" :width="300" v-on:animCreated="handleAnimation"></lottie>-->
+        <vs-row justify="center">
+          <vs-col w="10">
+            <div ref="target" id="target" class="center">
+              <vs-button block size="xl" color="warning" v-if="!isGameLoading"
+                         style="margin-top: 40px; font-weight: bold;" @click="onStartGame">
+                <!--                          <i class="mdi-play"></i>-->
+                {{ startText }}
+              </vs-button>
             </div>
-          </v-row>
-          <v-row justify="center">
-            <div class="display-3 font-weight-bold text-center">
-              {{ level.levelPoint || 160 }}
-            </div>
-          </v-row>
-        </v-card-text>
-
-        <v-card-text>
-
-          <v-footer :fixed="$vuetify.breakpoint.smAndDown">
-            <v-flex xs12 md5>
-              <v-btn text block x-large @click="onRestart">
-                <v-icon x-large left>mdi-restart</v-icon>
-                Bölümü Tekrar Oyna
-              </v-btn>
-            </v-flex>
-            <v-spacer></v-spacer>
-
-            <v-flex xs12 md5>
-              <v-btn color="primary" block @click="onNextLevel" x-large text>
-                <v-icon x-large left>mdi-skip-next</v-icon>
-                Sonraki Bölüme Geç
-              </v-btn>
-            </v-flex>
-          </v-footer>
-
-        </v-card-text>
-      </v-card>
-
-    </v-dialog>
-
-    <v-overlay :value="showLevelTutorial" color="#e44032" opacity="1" z-index="30">
-      <v-layout row>
-        <v-col>
-          <v-img
-              alt="tutorial"
-              class="shrink mt-1"
-              contain
-              min-width="300"
-              :src="tutorial"
-              width="100"
-          />
-
-          <v-col md="12">
-            <v-btn x-large block color="accent" @click="showLevelTutorial = false">
-              <v-icon left>mdi-thumb-up</v-icon>
-              TAMAM
-            </v-btn>
-          </v-col>
-        </v-col>
-      </v-layout>
-    </v-overlay>
-
-
-    <v-overlay :value="showAnimate" color="#e44032" opacity="0.2" z-index="30">
-      <v-layout row>
-        <v-col>
+          </vs-col>
+        </vs-row>
+        <vs-row v-if="isGameLoading" justify="center">
+          <div style="margin-top: 40px; font-weight: bold;">Oyun yükleniyor</div>
+        </vs-row>
+        <!--        </div>-->
+      </vs-row>
+      <template #footer>
+      </template>
+    </vs-dialog>
+    <vs-dialog :value="showAnimate" color="#e44032" not-close blur>
+      <vs-row justify="center">
+        <vs-col>
           <transition name="fade">
-            <v-img
+            <img
                 alt="tutorial"
                 class="shrink mt-1"
-                contain
-                min-width="300"
                 :src="require('@/game/assets/explosion.gif')"
                 width="400"
                 id="animateImg"
             />
           </transition>
-        </v-col>
-      </v-layout>
-    </v-overlay>
-
-
-    <v-overlay :value="showLogo" color="#e44032" opacity="0.2" z-index="30">
-      <v-layout row>
-        <v-col>
-          <transition name="fade">
-            <v-img
-                alt="tutorial"
-                class="shrink mt-1"
-                contain
-                min-width="300"
-                :src="require('@/game/assets/explosion2.gif')"
-                width="400"
-                id="animateLogoBack"
-            />
-          </transition>
-
-          <transition name="fade">
-            <v-img
-                alt="tutorial"
-                class="shrink mt-1"
-                contain
-                min-width="200"
-                :src="logo"
-                width="300"
-                id="animateLogo"
-            />
-          </transition>
-        </v-col>
-      </v-layout>
-    </v-overlay>
-
-
-    <v-overlay :value="entryPageShow" color="#e44032" opacity="1" z-index="30">
-      <v-layout row>
-        <v-col>
-          <v-img
-              alt="pmaktif-logo"
-              class="shrink mt-1"
-              contain
-              min-width="300"
-              :src="require('@/assets/pm-aktif-logo.svg')"
-              width="100"
-
-          />
-          <v-col
-              class="subtitle-1 text-center font-weight-bold"
-              cols="12"
-          >
-          </v-col>
-          <div v-if="isGameLoading">
-            <lottie :options="defaultOptions" :height="300" :width="300" v-on:animCreated="handleAnimation"></lottie>
-
-            <v-progress-linear
-                color="white lighten-2"
-                buffer-value="0"
-                stream
-            >
-            </v-progress-linear>
-
-            <v-col class="subtitle-1 text-center font-weight-bold" cols="12">
-              Oyun yükleniyor
-            </v-col>
-          </div>
-
-          <v-col md="12" v-else>
-            <v-btn x-large block color="accent" v-if="!isGameLoading" @click="onStartGame">
-              <v-icon left large>mdi-play</v-icon>
-              {{ startText }}
-            </v-btn>
-          </v-col>
-        </v-col>
-      </v-layout>
-    </v-overlay>
-
-
+        </vs-col>
+      </vs-row>
+    </vs-dialog>
   </div>
 </template>
 
@@ -209,7 +121,6 @@
 <script>
 import EventBus from "@/bus/event.bus";
 import Lottie from 'vue-lottie';
-import * as animationData from '@/assets/13689-gameboy-color.json';
 import * as successAnimationData from '@/assets/11272-party-popper.json';
 import * as failureAnimationData from '@/assets/32485-dead-emoji.json';
 import LevelFailureGameStateView from "@/game/views/LevelFailureGameStateView";
@@ -233,11 +144,8 @@ export default {
     LevelFailureGameStateView
   },
   data: () => ({
-    downloaded: false,
     gameInstance: null,
     containerId: 'game-container',
-    showVisualContent: false,
-    showQuestionContent: false,
     levelFailurePage: false,
     levelRetryDialog: false,
     levelSuccessDialog: false,
@@ -247,9 +155,7 @@ export default {
     showLogo: false,
     showAnimate: false,
     logo: null,
-
-
-    defaultOptions: {animationData: animationData.default},
+    // defaultOptions: {animationData: animationData.default},
     successAnimationOptions: {
       animationData: successAnimationData.default,
       animationSpeed: 3,
@@ -265,57 +171,42 @@ export default {
 
   }),
   methods: {
+    openLoading() {
+      const loading = this.$vs.loading({
+        percent: this.percent,
+        color: 'warning'
+      })
+      const interval = setInterval(() => {
+        if (this.percent <= 100) {
+          loading.changePercent(`${this.percent++}%`)
+        }
+      }, 40)
+      setTimeout(() => {
+        loading.close()
+        clearInterval(interval)
+        this.percent = 0
+      }, 2400)
+    },
     onStartGame() {
-      //TODO
-      //async method
       this.startText = "Başlıyor..."
       this.isGameLoading = true;
+      this.openLoading();
       this.startGameScreen();
 
     },
     handleAnimation(anim) {
       anim.setSpeed(0.5)
     },
-    onResize() {
-      this.windowSize = {x: window.innerWidth, y: window.innerHeight}
-      // console.log(this.windowSize)
-      // EventBus.$emit('resize',this.windowSize)
-    },
     async startGameScreen() {
-      const game = await import(/* webpackChunkName: "game" */ '@/game/game')
+      const game = await import(/* webpackChunkName: "game" */ '@/game/game.js')
       this.$nextTick(() => {
         this.gameInstance = game.launch(this.containerId)
-
-        // console.log(this.gameInstance.scene.scenes[3])
-        //
-        // for (let i = 0; i < this.gameInstance.scene.scenes.length; i++) {
-        //   this.gameInstance.scene.scenes[i].resizeGameContainer();
-        // }
-        //
-        // window.addEventListener('load', () => {
-        //   console.log("load")
-        //   window.addEventListener('resize', event => {
-        //     for (let i = 0; i < this.gameInstance.scene.scenes.length; i++) {
-        //       this.gameInstance.scene.scenes[i].resizeGameContainer();
-        //     }
-        //   });
-        // });
-        // window.addEventListener('resize', (event) => {
-        //   console.log("zoom")
-        //   // this.gameInstance.scale.setMaxZoom();
-        //   this.gameInstance.scale.resize(window.innerWidth, window.innerHeight - 100);
-        // }, false);
-
-        // window.addEventListener('resize', (event) => {
-        //   this.gameInstance.scale.resize(window.innerWidth, window.innerHeight);
-        // }, false);
       })
 
     },
     onLevelFailureClose() {
       this.levelFailurePage = false;
       EventBus.$emit("done:failure-contents");
-
       this.showRestartDialog();
     },
     onLevelFailureDoneWithQuiz(point) {
@@ -336,12 +227,7 @@ export default {
     onRestart() {
       this.levelRetryDialog = false;
       this.levelSuccessDialog = false;
-      this.$store.getters.getEventEmitter.emit("retry")
       EventBus.$emit("retry")
-      // this.$nextTick(()=>{
-      //   this.gameInstance.scene.start("GameLevelResolveScene")
-      // })
-
     },
 
     onNextLevel() {
@@ -430,7 +316,6 @@ export default {
   },
   mounted() {
     // clearTimeout(this.timeOut)
-    console.log(this.$store.getters)
     // this.$store.getters.getEventEmitter.on("show:success-dialog",this.showLevelSuccessDialog,this)
     EventBus.$on('ready', this.onGameSceneReady);
     EventBus.$on("show:failure-contents", this.showFailureContents)
@@ -438,31 +323,10 @@ export default {
     EventBus.$on("show:success-dialog", this.showLevelSuccessDialog)
     EventBus.$on('show:tutorial', this.onShowLevelTutorial);
     EventBus.$on('show:effect', this.onShowEffect);
+    // this.onStartGame();
   },
 
-  // window.addEventListener('resize', (event) => {
-  //   this.gameInstance.scale.resize(window.innerWidth, window.innerHeight);
-  // }, false);
-
   created() {
-
-    // EventBus.$on("next-level",()=>{
-    //
-    //
-    // })
-    // EventBus.$on("retry",() =>{
-    //   // this.scene.start("GameLevelResolveScene",store.getters.getSessionId)
-    //   this.gameInstance.scene.get("GameLevelResolveScene").scene.restart()
-    // })
-
-    // EventBus.$on("done:failure-contents",() =>{
-    //   EventBus.$emit("show:level-retry-dialog",this._level)
-    // })
-
-    // EventBus.$on("retry",() =>{
-    //   // this.scene.start("GameLevelResolveScene",store.getters.getSessionId)
-    //   this.gameInstance.scene.get("GameLevelResolveScene").scene.start()
-    // })
   },
   destroyed() {
     EventBus.$off('ready', this.onGameSceneReady);
@@ -477,43 +341,147 @@ export default {
 </script>
 
 
-<style lang="scss" scoped>
+<style scoped>
 
 
+/*//.placeholder {*/
+/*//  font-size: 2rem;*/
+/*//  font-family: 'Courier New', Courier, monospace;*/
+/*//}*/
+/*//*/
+/*#overlaydiv {*/
+/*  position: fixed;*/
+/*  display: none;*/
+/*  width: 100%;*/
+/*  height: 100%;*/
+/*  top: 0;*/
+/*  left: 0;*/
+/*  right: 0;*/
+/*  bottom: 0;*/
+/*  background-color: rgba(0,0,0,0.5);*/
+/*  z-index: 200;*/
+/*  cursor: pointer;*/
+/*}*/
 
-.placeholder {
-  font-size: 2rem;
-  font-family: 'Courier New', Courier, monospace;
+#overlay4 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 10;
+  background-color: rgba(0,0,0,0.5);
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 10;
+}
+
+/* just some content with arbitrary styles for explanation purposes */
+.modal {
+  /*width: 300px;*/
+  /*height: 200px;*/
+  /*line-height: 200px;*/
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  margin-top: -100px;
+  margin-left: -150px;
+  background-color: #f1c40f;
+  border-radius: 5px;
+  text-align: center;
+  z-index: 11; /* 1px higher than the overlay layer */
+}
+
+/*#overlay4{*/
+/*  position: relative;*/
+/*}*/
+/*#overlay4 div{*/
+/*  position: absolute;*/
+/*  top: 0;*/
+/*  left: 0;*/
+/*  width: 100%;*/
+/*  height: 100%;*/
+/*  z-index: 10;*/
+/*  background-color: rgba(0,0,0,0.5); !*dim the background*!*/
+/*}*/
+
+
+#text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 50px;
+  color: white;
+  transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+}
+
+/*#action {*/
+/*  position:absolute;*/
+/*  left:0;*/
+/*  right:0;*/
+/*  margin-left:auto;*/
+/*  width:300px;*/
+/*  margin-right:auto;*/
+/*  background-color: #000;*/
+/*  color: #FFF;*/
+/*  z-index:5;*/
+/*}*/
+
+#action {
+  position:relative;
+  top:0;
+  left:0;
+  width: 100%;
+  z-index:5;
+}
+
+#action div {
+  position: absolute;
+  left: 50%;
+  margin-left:-150px;
+  color: #FFF;
+  width:300px;
+  z-index:6;
 }
 
 #animateLogo {
+  position: absolute;
   z-index: 1000;
-  //width: 250px;
-  //height: 250px;
-  //right: 27%;
-  top: 12%;
+  width: 200px;
+  height: 200px;
+  /*right: 50%;*/
+  /*top: 12%;*/
 }
 
 #animateLogoBack {
-  position: absolute;
-  z-index: 999;
-  width: 400px;
-  height: 400px;
-  //right: 21%;
-  top: 4%;
+  position: fixed;
+  z-index: 100;
+  /*width: 200px;*/
+  /*height: 200px;*/
+  /*right: 50%;*/
+  /*top: 4%;*/
 }
 
-//#game-container{
-//  height: 100% !important;
-//}
 
-//#game-container {
-//  background-image: url("../../public/background.jpg");
-//  -webkit-background-size: cover;
-//  -moz-background-size: cover;
-//  -o-background-size: cover;
-//  background-size: cover;
-//  //padding-left: 16px;
-//  //padding-right: 0px;
-//}
+/*//#game-container{*/
+/*//  height: 100% !important;*/
+/*//}*/
+
+/*//#game-container {*/
+/*//  background-image: url("../../public/background.jpg");*/
+/*//  -webkit-background-size: cover;*/
+/*//  -moz-background-size: cover;*/
+/*//  -o-background-size: cover;*/
+/*//  background-size: cover;*/
+/*//  //padding-left: 16px;*/
+/*//  //padding-right: 0px;*/
+/*//}*/
 </style>

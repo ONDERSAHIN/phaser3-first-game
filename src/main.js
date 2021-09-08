@@ -1,9 +1,11 @@
-import { defineCustomElements as defineIonPhaser } from '@ion-phaser/core/loader';
+// import { defineCustomElements as defineIonPhaser } from '@ion-phaser/core/loader';
 import Vue from 'vue';
 import App from './AppORG.vue';
 import router from './router'
 import store from './store'
-import vuetify from './plugins/vuetify';
+
+import Vuesax from 'vuesax'
+import 'vuesax/dist/vuesax.css' //Vuesax styles
 
 import EventBus from '@/bus/event.bus'
 import http from './http';
@@ -12,7 +14,7 @@ import HttpClient from "./http/api/connector/http.client";
 Vue.config.productionTip = false;
 Vue.config.ignoredElements = [/ion-\w*/];
 
-defineIonPhaser(window);
+// defineIonPhaser(window);
 
 Vue.config.productionTip = false
 
@@ -30,10 +32,21 @@ Vue.config.errorHandler = function (err, vm, info) {
   console.log("Error Handler ", err);
 };
 
+Vue.use(Vuesax, {
+  // options here
+  colors: {
+    primary:'#5b3cc4',
+    success:'rgb(23, 201, 100)',
+    danger:'rgb(242, 19, 93)',
+    warning:'rgb(255, 130, 0)',
+    dark:'rgb(36, 33, 69)'
+  }
+})
+
+
 let app = {
   router,
   store,
-  vuetify,
   render: h => h(App),
   beforeCreate: function () {
     http.registerListeners();

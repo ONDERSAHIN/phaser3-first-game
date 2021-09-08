@@ -30,15 +30,6 @@ const routes = [
         redirect: '/games',
         children: [
             {
-                path: '/games',
-                component: () => import('@/views/games/'),
-                name: 'games',
-                meta: {
-                    isPublic: false,
-                    requiresAuth: true,
-                },
-            },
-            {
                 path: '/candy-crush',
                 name: 'candycrush_game',
                 component: () => import(/* webpackChunkName: "about" */ '@/views/candycrush/'),

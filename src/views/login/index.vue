@@ -1,27 +1,27 @@
 <template>
-  <v-main>
-    <v-container fluid style="padding: 0;">
-      <v-layout row wrap justify-center>
-        <v-overlay :value="authenticating" color="#e44032">
-          <v-progress-circular
-              indeterminate
-              size="64"
-          ></v-progress-circular>
-        </v-overlay>
-        <v-col sm="10" v-if="isNotAuthenticated">
-          <v-alert
-              height="200"
-              border="left"
-              colored-border
-              type="error"
-              elevation="2"
-          >
-            {{ isNotAuthenticatedText }}
-          </v-alert>
-        </v-col>
-      </v-layout>
-    </v-container>
-  </v-main>
+<!--  <v-main>-->
+<!--    <v-container fluid style="padding: 0;">-->
+<!--      <v-layout row wrap justify-center>-->
+<!--        <v-overlay :value="authenticating" color="#e44032">-->
+<!--          <v-progress-circular-->
+<!--              indeterminate-->
+<!--              size="64"-->
+<!--          ></v-progress-circular>-->
+<!--        </v-overlay>-->
+<!--        <v-col sm="10" v-if="isNotAuthenticated">-->
+<!--          <v-alert-->
+<!--              height="200"-->
+<!--              border="left"-->
+<!--              colored-border-->
+<!--              type="error"-->
+<!--              elevation="2"-->
+<!--          >-->
+<!--            {{ isNotAuthenticatedText }}-->
+<!--          </v-alert>-->
+<!--        </v-col>-->
+<!--      </v-layout>-->
+<!--    </v-container>-->
+<!--  </v-main>-->
 </template>
 
 <script>
@@ -50,10 +50,22 @@ export default {
       sleep(3000).then(()=>{
         this.$store.dispatch('login', {referenceToken}).then(isLoggedIn => {
           if (isLoggedIn) {
-            this.$router.replace({name: 'games'})
+            // this.$router.replace({name: 'games'})
+            this.$serviceContext.gameService.getGames().then(({data: {data, error}}) => {
+              if (!error) {
+                // this.games = data
+                if(data.length){
+                  this.$store.dispatch("setCurrentGame", data[0]);
+                  this.$router.replace({name: 'candycrush_game'})
+                }
+              }
+              this.authenticating = false;
+              this.isNotAuthenticated = true;
+            }).catch(error => {
+              this.authenticating = false;
+              this.isNotAuthenticated = true;
+            });
           }
-          this.authenticating = false;
-          this.isNotAuthenticated = true;
         }).catch(error => {
           this.isNotAuthenticated = true;
           this.authenticating = false;
